@@ -1,45 +1,36 @@
 # MacroLite
 
-MacroLite is a lightweight Windows desktop macro recorder. It records mouse and keyboard actions, saves them as JSON, and replays them once or in a loop.
+MacroLite is a lightweight Windows desktop app for recording and replaying mouse and keyboard actions.
 
-## Requirements
+It is designed for simple repetitive desktop tasks: record what you do once, then replay it later once, multiple times, or continuously until stopped.
 
-- Windows 10 or Windows 11
-- Python 3.12+
-- pip
+## Download
 
-## Install
+Download the latest Windows `.exe` from the GitHub releases page:
 
-```bash
-py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
-```
+[Download MacroLite](https://github.com/mbalashovv/MacroLite/releases/latest)
 
-## Run
+## Features
 
-```bash
-macrolite
-```
+- Record mouse movement, clicks, scrolling, and keyboard input.
+- Replay recorded macros once or for a selected number of loops.
+- Run continuous playback until stopped.
+- Save and load macro files as `.macro.json`.
+- Export recorded macros as standalone `.exe` files.
+- Use `F8` to start or stop recording.
+- Use `F12` to start or stop playback.
+- Simple Windows desktop interface.
 
-Alternative without installing the console command:
+## Use Cases
 
-```bash
-python -m macrolite
-```
-
-## Current MVP Scope
-
-- GUI-first desktop application.
-- Record mouse movement, clicks, scrolls, and keyboard press/release events.
-- Save and load `.macro.json` files.
-- Export macro playback as a standalone `.exe`.
-- Replay macros with loop count or continuous playback.
-- Use `F8` to start/stop recording.
-- Use `F12` to start/stop playback.
+- Repeating clicks and keyboard input in desktop applications.
+- Automating simple browser or file explorer workflows.
+- Replaying repetitive form-filling or data-entry steps.
+- Sharing recorded macros with other Windows users.
+- Running small local automations without a full RPA tool.
 
 ## Notes
 
-MacroLite uses absolute screen coordinates. Keep the target window in the same position and size when replaying a macro.
+MacroLite uses absolute screen coordinates. For best results, keep the target window in the same position and size when replaying a macro.
+
+Some applications may block simulated input, especially games, anti-cheat protected software, remote desktop sessions, or elevated/admin windows.
