@@ -1,0 +1,1 @@
+"""MacroLite core package."""
