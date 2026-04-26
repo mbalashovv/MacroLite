@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from tkinter import BooleanVar, filedialog, messagebox
 
@@ -17,8 +18,9 @@ class MacroLiteWindow(ctk.CTk):
         super().__init__()
 
         self.title("MacroLite")
-        self.geometry("920x640")
-        self.minsize(820, 560)
+        self._set_window_icon()
+        self.geometry("940x700")
+        self.minsize(860, 650)
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("green")
@@ -44,6 +46,22 @@ class MacroLiteWindow(ctk.CTk):
         self._refresh_controls()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+    def _set_window_icon(self) -> None:
+        icon_path = self._resource_path("icon.ico")
+        if not icon_path.exists():
+            return
+
+        try:
+            self.iconbitmap(str(icon_path))
+        except Exception:
+            # Missing/invalid icons should not prevent the app from starting.
+            pass
+
+    def _resource_path(self, relative_path: str) -> Path:
+        if getattr(sys, "frozen", False):
+            return Path(sys._MEIPASS) / relative_path
+        return Path(__file__).resolve().parents[3] / relative_path
+
     def _build_ui(self) -> None:
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -68,19 +86,19 @@ class MacroLiteWindow(ctk.CTk):
         content.grid_rowconfigure(0, weight=1)
 
         left = ctk.CTkFrame(content, corner_radius=22, fg_color="#14212d")
-        left.grid(row=0, column=0, padx=(24, 12), pady=24, sticky="nsew")
+        left.grid(row=0, column=0, padx=(24, 12), pady=20, sticky="nsew")
         left.grid_columnconfigure((0, 1), weight=1)
 
         right = ctk.CTkFrame(content, corner_radius=22, fg_color="#16251d")
-        right.grid(row=0, column=1, padx=(12, 24), pady=24, sticky="nsew")
+        right.grid(row=0, column=1, padx=(12, 24), pady=20, sticky="nsew")
         right.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(left, text="Controls", font=ctk.CTkFont(size=22, weight="bold")).grid(
-            row=0, column=0, columnspan=2, padx=22, pady=(22, 14), sticky="w"
+            row=0, column=0, columnspan=2, padx=22, pady=(20, 10), sticky="w"
         )
 
         self.record_button = ctk.CTkButton(left, text="Start Recording  (F8)", height=48, command=self.start_recording)
-        self.record_button.grid(row=1, column=0, padx=(22, 10), pady=10, sticky="ew")
+        self.record_button.grid(row=1, column=0, padx=(22, 10), pady=8, sticky="ew")
 
         self.stop_button = ctk.CTkButton(
             left,
@@ -90,22 +108,22 @@ class MacroLiteWindow(ctk.CTk):
             fg_color="#a93636",
             hover_color="#7f2424",
         )
-        self.stop_button.grid(row=1, column=1, padx=(10, 22), pady=10, sticky="ew")
+        self.stop_button.grid(row=1, column=1, padx=(10, 22), pady=8, sticky="ew")
 
         self.play_button = ctk.CTkButton(left, text="Play  (F12)", height=48, command=self.toggle_playback)
-        self.play_button.grid(row=2, column=0, padx=(22, 10), pady=10, sticky="ew")
+        self.play_button.grid(row=2, column=0, padx=(22, 10), pady=8, sticky="ew")
 
         self.save_button = ctk.CTkButton(left, text="Save Macro", height=48, command=self.save_macro)
-        self.save_button.grid(row=2, column=1, padx=(10, 22), pady=10, sticky="ew")
+        self.save_button.grid(row=2, column=1, padx=(10, 22), pady=8, sticky="ew")
 
         self.load_button = ctk.CTkButton(left, text="Load Macro", height=48, command=self.load_macro)
-        self.load_button.grid(row=3, column=0, padx=(22, 10), pady=10, sticky="ew")
+        self.load_button.grid(row=3, column=0, padx=(22, 10), pady=8, sticky="ew")
 
         self.export_button = ctk.CTkButton(left, text="Export EXE", height=48, command=self.export_exe)
-        self.export_button.grid(row=3, column=1, padx=(10, 22), pady=10, sticky="ew")
+        self.export_button.grid(row=3, column=1, padx=(10, 22), pady=8, sticky="ew")
 
         settings = ctk.CTkFrame(left, corner_radius=18, fg_color="#0f1922")
-        settings.grid(row=4, column=0, columnspan=2, padx=22, pady=(22, 14), sticky="ew")
+        settings.grid(row=4, column=0, columnspan=2, padx=22, pady=(18, 20), sticky="ew")
         settings.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(settings, text="Playback settings", font=ctk.CTkFont(size=18, weight="bold")).grid(
