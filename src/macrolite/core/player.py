@@ -4,9 +4,24 @@ import threading
 import time
 from collections.abc import Callable
 
-from macrolite.core.actions import MacroAction, to_pyautogui_key
+from macrolite.core.actions import MacroAction
 
 ProgressCallback = Callable[[str], None]
+
+PYDIRECTINPUT_KEY_ALIASES = {
+    "alt_l": "altleft",
+    "alt_r": "altright",
+    "caps_lock": "capslock",
+    "cmd": "win",
+    "cmd_l": "winleft",
+    "cmd_r": "winright",
+    "ctrl_l": "ctrlleft",
+    "ctrl_r": "ctrlright",
+    "page_down": "pagedown",
+    "page_up": "pageup",
+    "shift_l": "shiftleft",
+    "shift_r": "shiftright",
+}
 
 
 class MacroPlayer:
@@ -55,21 +70,29 @@ class MacroPlayer:
     ) -> None:
         try:
             import pyautogui
+            import pydirectinput
 
             pyautogui.PAUSE = 0
+            pydirectinput.PAUSE = 0
 
             iteration = 0
             while not self._stop_event.is_set() and (loop_count == 0 or iteration < loop_count):
                 iteration += 1
                 self._emit(on_status, f"Playing loop {iteration}" if loop_count else f"Playing loop {iteration} (infinite)")
-                self._play_once(pyautogui, actions, speed)
+                self._play_once(pyautogui, pydirectinput, actions, speed)
         except Exception as exc:
             self._emit(on_status, f"Playback error: {exc}")
         finally:
             if on_finished is not None:
                 on_finished()
 
-    def _play_once(self, pyautogui: object, actions: list[MacroAction], speed: float) -> None:
+    def _play_once(
+        self,
+        pyautogui: object,
+        pydirectinput: object,
+        actions: list[MacroAction],
+        speed: float,
+    ) -> None:
         loop_started_at = time.perf_counter()
         for action in actions:
             if self._stop_event.is_set():
@@ -81,25 +104,30 @@ class MacroPlayer:
             if self._sleep_interruptible(wait_time):
                 return
 
-            self._execute_action(pyautogui, action)
+            self._execute_action(pyautogui, pydirectinput, action)
 
-    def _execute_action(self, pyautogui: object, action: MacroAction) -> None:
+    def _execute_action(
+        self,
+        pyautogui: object,
+        pydirectinput: object,
+        action: MacroAction,
+    ) -> None:
         if action.type == "mouse_move" and action.x is not None and action.y is not None:
-            pyautogui.moveTo(action.x, action.y)
+            pydirectinput.moveTo(action.x, action.y)
         elif action.type == "mouse_down" and action.x is not None and action.y is not None:
-            pyautogui.moveTo(action.x, action.y)
-            pyautogui.mouseDown(button=action.button or "left")
+            pydirectinput.moveTo(action.x, action.y)
+            pydirectinput.mouseDown(button=_to_pydirectinput_button(action.button))
         elif action.type == "mouse_up" and action.x is not None and action.y is not None:
-            pyautogui.moveTo(action.x, action.y)
-            pyautogui.mouseUp(button=action.button or "left")
+            pydirectinput.moveTo(action.x, action.y)
+            pydirectinput.mouseUp(button=_to_pydirectinput_button(action.button))
         elif action.type == "mouse_scroll":
             if action.x is not None and action.y is not None:
                 pyautogui.moveTo(action.x, action.y)
             pyautogui.scroll(action.dy or 0)
         elif action.type == "key_down" and action.key:
-            pyautogui.keyDown(to_pyautogui_key(action.key))
+            pydirectinput.keyDown(_to_pydirectinput_key(action.key))
         elif action.type == "key_up" and action.key:
-            pyautogui.keyUp(to_pyautogui_key(action.key))
+            pydirectinput.keyUp(_to_pydirectinput_key(action.key))
 
     def _sleep_interruptible(self, seconds: float) -> bool:
         deadline = time.perf_counter() + seconds
@@ -112,3 +140,13 @@ class MacroPlayer:
     def _emit(self, callback: ProgressCallback | None, message: str) -> None:
         if callback is not None:
             callback(message)
+
+
+def _to_pydirectinput_key(key: str) -> str:
+    return PYDIRECTINPUT_KEY_ALIASES.get(key, key.lower() if len(key) == 1 else key)
+
+
+def _to_pydirectinput_button(button: str | None) -> str:
+    if button in {"left", "right", "middle"}:
+        return button
+    return "left"

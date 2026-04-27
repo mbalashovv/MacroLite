@@ -61,6 +61,7 @@ import threading
 import time
 
 import pyautogui
+import pydirectinput
 from pynput import keyboard
 
 MACRO = json.loads({macro_json!r})
@@ -69,20 +70,19 @@ SPEED = {speed!r}
 STOP_EVENT = threading.Event()
 
 KEY_ALIASES = {{
-    "alt": "alt", "alt_l": "alt", "alt_r": "alt",
-    "backspace": "backspace", "caps_lock": "capslock",
-    "cmd": "win", "cmd_l": "winleft", "cmd_r": "winright",
-    "ctrl": "ctrl", "ctrl_l": "ctrl", "ctrl_r": "ctrl",
-    "delete": "delete", "down": "down", "end": "end",
-    "enter": "enter", "esc": "esc", "home": "home",
-    "insert": "insert", "left": "left", "menu": "apps",
-    "page_down": "pagedown", "page_up": "pageup",
-    "right": "right", "shift": "shift", "shift_l": "shift",
-    "shift_r": "shift", "space": "space", "tab": "tab",
-    "up": "up",
+    "alt_l": "altleft",
+    "alt_r": "altright",
+    "caps_lock": "capslock",
+    "ctrl_l": "ctrlleft",
+    "ctrl_r": "ctrlright",
+    "page_down": "pagedown",
+    "page_up": "pageup",
+    "win": "cmd",
+    "shift_l": "shiftleft",
+    "shift_r": "shiftright",
 }}
-for index in range(1, 13):
-    KEY_ALIASES[f"f{{index}}"] = f"f{{index}}"
+for function_key in range(1, 13):
+    KEY_ALIASES[f"f{{function_key}}"] = f"f{{function_key}}"
 
 
 def normalize_key(key):
@@ -114,21 +114,31 @@ def sleep_interruptible(seconds):
 def execute(action):
     action_type = action["type"]
     if action_type == "mouse_move":
-        pyautogui.moveTo(action["x"], action["y"])
+        pydirectinput.moveTo(action["x"], action["y"])
     elif action_type == "mouse_down":
-        pyautogui.moveTo(action["x"], action["y"])
-        pyautogui.mouseDown(button=action.get("button") or "left")
+        pydirectinput.moveTo(action["x"], action["y"])
+        pydirectinput.mouseDown(button=to_pydirectinput_button(action.get("button")))
     elif action_type == "mouse_up":
-        pyautogui.moveTo(action["x"], action["y"])
-        pyautogui.mouseUp(button=action.get("button") or "left")
+        pydirectinput.moveTo(action["x"], action["y"])
+        pydirectinput.mouseUp(button=to_pydirectinput_button(action.get("button")))
     elif action_type == "mouse_scroll":
         if "x" in action and "y" in action:
             pyautogui.moveTo(action["x"], action["y"])
         pyautogui.scroll(action.get("dy") or 0)
     elif action_type == "key_down":
-        pyautogui.keyDown(KEY_ALIASES.get(action["key"], action["key"]))
+        pydirectinput.keyDown(to_pydirectinput_key(action["key"]))
     elif action_type == "key_up":
-        pyautogui.keyUp(KEY_ALIASES.get(action["key"], action["key"]))
+        pydirectinput.keyUp(to_pydirectinput_key(action["key"]))
+
+
+def to_pydirectinput_key(key):
+    return KEY_ALIASES.get(key, key.lower() if len(key) == 1 else key)
+
+
+def to_pydirectinput_button(button):
+    if button in {{"left", "right", "middle"}}:
+        return button
+    return "left"
 
 
 def play_once(actions):
@@ -143,6 +153,7 @@ def play_once(actions):
 
 def main():
     pyautogui.PAUSE = 0
+    pydirectinput.PAUSE = 0
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
     actions = MACRO["actions"]

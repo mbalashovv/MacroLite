@@ -30,7 +30,6 @@ class MacroRecorder:
         self._last_move_time = 0.0
         self._last_move_position: tuple[int, int] | None = None
         self._mouse_listener = None
-        self._keyboard_listener = None
 
     @property
     def is_recording(self) -> bool:
@@ -40,7 +39,7 @@ class MacroRecorder:
         if self._recording:
             raise RuntimeError("Recorder is already running")
 
-        from pynput import keyboard, mouse
+        from pynput import mouse
 
         with self._lock:
             self._actions = []
@@ -55,12 +54,7 @@ class MacroRecorder:
             on_click=self._on_mouse_click,
             on_scroll=self._on_mouse_scroll,
         )
-        self._keyboard_listener = keyboard.Listener(
-            on_press=self._on_key_down,
-            on_release=self._on_key_up,
-        )
         self._mouse_listener.start()
-        self._keyboard_listener.start()
 
     def stop(self) -> list[MacroAction]:
         if not self._recording:
@@ -68,9 +62,7 @@ class MacroRecorder:
 
         self._recording = False
         self._stop_listener(self._mouse_listener)
-        self._stop_listener(self._keyboard_listener)
         self._mouse_listener = None
-        self._keyboard_listener = None
 
         with self._lock:
             self._actions = compress_mouse_moves(self._actions)
@@ -147,24 +139,12 @@ class MacroRecorder:
             )
         )
 
-    def _on_key_down(self, key: object) -> bool | None:
+    def record_key_down(self, key: object) -> None:
         key_name = normalize_key(key)
-        if key_name == "f8":
-            if self.on_stop_hotkey is not None:
-                self.on_stop_hotkey()
-            return False
-        if key_name == "f12":
-            return False
-
-        if self._can_capture():
+        if key_name not in {"f8", "f12"} and self._can_capture():
             self._append(MacroAction(type="key_down", time=self._timestamp(), key=key_name))
-        return None
 
-    def _on_key_up(self, key: object) -> bool | None:
+    def record_key_up(self, key: object) -> None:
         key_name = normalize_key(key)
-        if key_name in {"f8", "f12"}:
-            return False
-
-        if self._can_capture():
+        if key_name not in {"f8", "f12"} and self._can_capture():
             self._append(MacroAction(type="key_up", time=self._timestamp(), key=key_name))
-        return None

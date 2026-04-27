@@ -30,6 +30,8 @@ class MacroLiteWindow(ctk.CTk):
         self.hotkeys = AppHotkeys(
             on_record_toggle=self._record_hotkey_threadsafe,
             on_play=self._play_hotkey_threadsafe,
+            on_key_down=self.recorder.record_key_down,
+            on_key_up=self.recorder.record_key_up,
         )
         self.actions = []
         self.current_file: Path | None = None
@@ -40,6 +42,7 @@ class MacroLiteWindow(ctk.CTk):
         self.loop_var = ctk.StringVar(value="1")
         self.speed_var = ctk.StringVar(value="1.0")
         self.continuous_var = BooleanVar(value=False)
+        self.minimize_playback_var = BooleanVar(value=True)
 
         self._build_ui()
         self._start_hotkeys()
@@ -145,6 +148,13 @@ class MacroLiteWindow(ctk.CTk):
         )
         self.continuous_checkbox.grid(row=3, column=0, columnspan=2, padx=18, pady=(10, 18), sticky="w")
 
+        self.minimize_playback_checkbox = ctk.CTkCheckBox(
+            settings,
+            text="Minimize MacroLite during playback",
+            variable=self.minimize_playback_var,
+        )
+        self.minimize_playback_checkbox.grid(row=4, column=0, columnspan=2, padx=18, pady=(0, 18), sticky="w")
+
         ctk.CTkLabel(right, text="Status", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=22, pady=(22, 12), sticky="w"
         )
@@ -174,7 +184,7 @@ class MacroLiteWindow(ctk.CTk):
         help_card.grid(row=3, column=0, padx=22, pady=10, sticky="ew")
         ctk.CTkLabel(
             help_card,
-            text="Mouse movement is recorded with sampled points. Macros use absolute screen coordinates, so keep target windows in the same position.",
+            text="Mouse movement is recorded with sampled points. For keyboard playback, focus the target app first or keep minimize-on-play enabled.",
             wraplength=300,
             justify="left",
             text_color="#e7d88c",
@@ -233,6 +243,15 @@ class MacroLiteWindow(ctk.CTk):
             messagebox.showerror("MacroLite", str(exc))
             return
 
+        self.status_var.set("Playing")
+        self._refresh_controls()
+        if self.minimize_playback_var.get():
+            self.iconify()
+            self.after(250, lambda: self._start_player(loop_count, speed))
+        else:
+            self._start_player(loop_count, speed)
+
+    def _start_player(self, loop_count: int, speed: float) -> None:
         try:
             self.player.play_async(
                 self.actions,
@@ -242,11 +261,9 @@ class MacroLiteWindow(ctk.CTk):
                 on_finished=self._playback_finished_threadsafe,
             )
         except Exception as exc:
+            self.deiconify()
             messagebox.showerror("MacroLite", f"Could not start playback:\n{exc}")
-            return
-
-        self.status_var.set("Playing")
-        self._refresh_controls()
+            self._refresh_controls()
 
     def toggle_playback(self) -> None:
         if self.player.is_playing:
@@ -386,6 +403,8 @@ class MacroLiteWindow(ctk.CTk):
         self.after(0, self._playback_finished)
 
     def _playback_finished(self) -> None:
+        if self.minimize_playback_var.get():
+            self.deiconify()
         if self.status_var.get().startswith("Stopping"):
             self.status_var.set("Playback stopped")
         elif self.status_var.get().startswith("Playback error"):
